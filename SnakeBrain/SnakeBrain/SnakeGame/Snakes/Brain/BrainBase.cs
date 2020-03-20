@@ -15,26 +15,35 @@ namespace SnakeBrain.SnakeGame.Snakes.Brain
         public int BrainWidth { get; private set; }
 
         [JsonProperty]
-        private Neuron[,] Neurons { get; set; }
+        private Neuron[,] WallNeurons { get; set; }
 
-        public Neuron this[int y, int x] =>
-            Neurons[y, x];
+        [JsonProperty]
+        private Neuron[,] FoodNeurons { get; set; }
 
-        public Neuron this[Point point] =>
+        public (Neuron WallNeuron, Neuron FoodNeuron) this[int y, int x] =>
+            (WallNeurons[y, x], FoodNeurons[y, x]);
+
+        public (Neuron WallNeuron, Neuron FoodNeuron) this[Point point] =>
             this[point.Y, point.X];
 
         private List<Point> LastWallTriggers { get; set; } = new List<Point>();
         private List<Point> LastFoodTriggers { get; set; } = new List<Point>();
         private Direction LastDecision { get; set; }
 
+        public bool IsWallTriggered(Point point) =>
+            LastWallTriggers.Contains(point);
+
+        public bool IsFoodTriggered(Point point) =>
+            LastFoodTriggers.Contains(point);
+
         private delegate void NeuronAffector(Neuron neuron, Direction direction);
         private void AffectAllNeuronsAt(Direction direction, NeuronAffector affector)
         {
             foreach (Point wallTrigger in LastWallTriggers)
-                affector(Neurons[wallTrigger.Y, wallTrigger.X], direction);
+                affector(WallNeurons[wallTrigger.Y, wallTrigger.X], direction);
 
             foreach (Point foodTrigger in LastFoodTriggers)
-                affector(Neurons[foodTrigger.Y, foodTrigger.X], direction);
+                affector(FoodNeurons[foodTrigger.Y, foodTrigger.X], direction);
         }
 
         public void AcceptDecision() { }
@@ -53,10 +62,10 @@ namespace SnakeBrain.SnakeGame.Snakes.Brain
             Neuron result = new Neuron();
 
             foreach (Point wallTriggerCoord in wallTriggers)
-                result += this[wallTriggerCoord];
+                result += WallNeurons[wallTriggerCoord.Y, wallTriggerCoord.X];
 
             foreach (Point foodTriggerCoord in foodTriggers)
-                result += this[foodTriggerCoord];
+                result += FoodNeurons[foodTriggerCoord.Y, foodTriggerCoord.X];
 
             List<Direction> bestDirections = result.BestDirections.ToList();
             LastDecision = bestDirections[R.Next(0, bestDirections.Count - 1)];
@@ -81,11 +90,15 @@ namespace SnakeBrain.SnakeGame.Snakes.Brain
             BrainHeight = brainHeight;
             BrainWidth = brainWidth;
 
-            Neurons = new Neuron[BrainHeight, BrainWidth];
+            WallNeurons = new Neuron[BrainHeight, BrainWidth];
+            FoodNeurons = new Neuron[brainHeight, BrainWidth];
 
             for (int i = 0; i < BrainHeight; ++i)
                 for (int j = 0; j < BrainWidth; ++j)
-                    Neurons[i, j] = new Neuron();
+                {
+                    WallNeurons[i, j] = new Neuron();
+                    FoodNeurons[i, j] = new Neuron();
+                }
         }
     }
 }

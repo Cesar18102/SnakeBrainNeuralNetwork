@@ -1,8 +1,6 @@
 ﻿using SFML.System;
 using SFML.Graphics;
 
-using SnakeBrain.SnakeGame.Snakes;
-
 namespace SnakeBrain.SnakeGame
 {
     public class FieldCellBase
@@ -39,7 +37,7 @@ namespace SnakeBrain.SnakeGame
                 Position = new Vector2f(Position.X * width, Position.Y * height)
             };
 
-            shape.Draw(target, states);
+            target.Draw(shape, states);
         }
     }
 }

@@ -64,7 +64,6 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="School.cs" />
     <Compile Include="SnakeGame\Field.cs" />
     <Compile Include="SnakeGame\FieldCellBase.cs" />
     <Compile Include="SnakeGame\FieldCells\FieldCellEmpty.cs" />

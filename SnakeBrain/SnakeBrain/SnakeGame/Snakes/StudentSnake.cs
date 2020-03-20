@@ -42,21 +42,25 @@ namespace SnakeBrain.SnakeGame.Snakes
             List<Point> foodTriggers = new List<Point>();
 
             int brainOffsetY = Brain.BrainHeight / 2;
-            int yStart = Math.Min(Math.Max(Head.Position.Y - brainOffsetY, 0), gameField.Height - 1);
-            int yEnd = Math.Min(Math.Max(Head.Position.Y + brainOffsetY, 0), gameField.Height - 1);
+            int yStart = Head.Position.Y - brainOffsetY; //Math.Min(Math.Max(Head.Position.Y - brainOffsetY, 0), gameField.Height - 1);
+            int yEnd = Head.Position.Y + brainOffsetY; //Math.Min(Math.Max(Head.Position.Y + brainOffsetY, 0), gameField.Height - 1);
 
             int brainOffsetX = Brain.BrainWidth / 2;
-            int xStart = Math.Min(Math.Max(Head.Position.X - brainOffsetX, 0), gameField.Width - 1);
-            int xEnd = Math.Min(Math.Max(Head.Position.X + brainOffsetX, 0), gameField.Width - 1);
+            int xStart = Head.Position.X - brainOffsetX; //Math.Min(Math.Max(Head.Position.X - brainOffsetX, 0), gameField.Width - 1);
+            int xEnd = Head.Position.X + brainOffsetX; //Math.Min(Math.Max(Head.Position.X + brainOffsetX, 0), gameField.Width - 1);
 
             for (int i = yStart; i <= yEnd; i++)
-                for(int j = xStart; j <= xEnd; j++)
-                {
-                    if (gameField[i, j] is FieldCellWall || CellInBody(gameField[i, j]) || otherSnakes.Exists(S => S.ContainsCell(gameField[i, j])))
-                        wallTriggers.Add(new Point(i - yStart, j - xStart));
-                    else if (gameField[i, j] is FieldCellFood)
-                        foodTriggers.Add(new Point(i - yStart, j - xStart));
-                }
+                if (i >= 0 && i < gameField.Height)
+                    for (int j = xStart; j <= xEnd; j++)
+                    {
+                        if (j < 0 || j >= gameField.Width)
+                            continue;
+
+                        if (gameField[i, j] is FieldCellWall || CellInBody(gameField[i, j]) || otherSnakes.Exists(S => S.ContainsCell(gameField[i, j])))
+                            wallTriggers.Add(new Point(i - yStart, j - xStart));
+                        else if (gameField[i, j] is FieldCellFood)
+                            foodTriggers.Add(new Point(i - yStart, j - xStart));
+                    }
 
             Direction decision = Brain.GetDecision(wallTriggers, foodTriggers);
 

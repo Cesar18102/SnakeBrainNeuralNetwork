@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using WF = System.Windows.Forms;
 using System.Collections.Generic;
 
@@ -9,7 +8,10 @@ using SFML.Graphics;
 
 using SnakeBrain.SnakeGame.Snakes;
 using SnakeBrain.SnakeGame.FieldCells;
+using SnakeBrain.SnakeGame.Snakes.Brain;
 using SnakeBrain.SnakeGame.Snakes.SnakeEventArgs;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace SnakeBrain.SnakeGame
 {
@@ -24,13 +26,33 @@ namespace SnakeBrain.SnakeGame
         public bool Stopped { get; private set; }
 
         private Field GameField { get; set; }
-        //private List<StudentSnake> Snakes { get; set; } = new List<StudentSnake>();
-        public StudentSnake Snake { get; private set; }
 
+        private int INIT_SNAKE_COUNT = 5;
+        private int INIT_STUDENT_NRG = 750;
+        private int NRG_PER_FOOD = 250;
+        private int CREATE_NRG = 1500;
+        private int DIE_NRG = 0;
+
+        private const int INIT_SIZE = 7;
         private const int BRAIN_WIDTH = 11;
         private const int BRAIN_HEIGHT = 11;
-        private const int SNAKE_COUNT = 1;
-        private const int INIT_SIZE = 7;
+
+        private class Result
+        {
+            public BrainBase Brain { get; private set; }
+            public int Score { get; private set; }
+            public int Produced { get; private set; }
+
+            public Result(BrainBase brain, int score, int produced)
+            {
+                Brain = brain;
+                Score = score;
+                Produced = produced;
+            }
+        }
+
+        private List<DividingStudentSnake> Snakes = new List<DividingStudentSnake>();
+        private List<DividingStudentSnake> CreatedSnakes = new List<DividingStudentSnake>();
 
         private PredictWaitEventArgs LastTest { get; set; }
         private Action DrawExtra { get; set; } = () => { };
@@ -79,91 +101,7 @@ namespace SnakeBrain.SnakeGame
                     GameField[i, j] = i == 0 || j == 0 || i == fieldHeight - 1 || j == fieldWidth - 1 ? 
                         new FieldCellWall(i, j) as FieldCellBase : new FieldCellEmpty(i, j);
 
-            Snake = new StudentSnake(
-                R.Next(INIT_SIZE, fieldHeight - INIT_SIZE - 1),
-                R.Next(1, fieldWidth - 1), (uint)INIT_SIZE,
-                Color.Red, Color.Blue, BRAIN_HEIGHT, BRAIN_WIDTH
-            );
-
-            /*for (int i = 0; i < SNAKE_COUNT; ++i)
-                Snakes.Add(new StudentSnake(
-                    R.Next(INIT_SIZE, fieldHeight - INIT_SIZE - 1),
-                    R.Next(1, fieldWidth - 1), (uint)INIT_SIZE,
-                    Color.Red, Color.Blue, BRAIN_HEIGHT, BRAIN_WIDTH
-                ));*/
-
-            Snake.OnPredictControlPauseNeeded += (sender, e) =>
-            {
-                Pause();
-                LastTest = e;
-
-                DrawExtra = () =>
-                {
-                    int x = Snake.Head.Position.X + (e.WantedDirection == Direction.LEFT ? -1 : (e.WantedDirection == Direction.RIGHT ? 1 : 0));
-                    int y = Snake.Head.Position.Y + (e.WantedDirection == Direction.TOP ? -1 : (e.WantedDirection == Direction.BOTTOM ? 1 : 0));
-
-                    STEP_PREDICTION_POINTER.Position = new Vector2f(x * GameField.CellWidthPixel, y * GameField.CellWidthPixel);
-                    Win.Draw(STEP_PREDICTION_POINTER);
-
-                    DrawTable<CircleShape>(
-                        Win, WALL_GRID_ITEM, WALL_GRID_OFFSET, WALL_GRID_ITEM_SIZE, 
-                        Snake.Brain.BrainHeight, Snake.Brain.BrainWidth, (s, h, w) => {
-                            if (Snake.Brain.IsWallTriggered(new Point(h, w)))
-                                s.OutlineColor = WALL_TRIGGERED_COLOR;
-                        }
-                    );
-
-                    DrawTable<Text>(
-                        Win, WALL_GRID_TEXT_ITEM, WALL_GRID_OFFSET, WALL_GRID_ITEM_SIZE, Snake.Brain.BrainHeight,
-                        Snake.Brain.BrainWidth, (s, h, w) => s.DisplayedString = Snake.Brain[h, w].WallNeuron.ToString()
-                    );
-
-                    DrawTable<CircleShape>(
-                        Win, FOOD_GRID_ITEM, FOOD_GRID_OFFSET, FOOD_GRID_ITEM_SIZE,
-                        Snake.Brain.BrainHeight, Snake.Brain.BrainWidth, (s, h, w) => {
-                            if (Snake.Brain.IsFoodTriggered(new Point(h, w)))
-                                s.OutlineColor = FOOD_TRIGGERED_COLOR;
-                        }
-                    );
-
-                    DrawTable<Text>(
-                        Win, FOOD_GRID_TEXT_ITEM, FOOD_GRID_OFFSET, FOOD_GRID_ITEM_SIZE, Snake.Brain.BrainHeight,
-                        Snake.Brain.BrainWidth, (s, h, w) => s.DisplayedString = Snake.Brain[h, w].FoodNeuron.ToString()
-                    );
-                };
-            };
-
-            Snake.OnContinueGame += (sender, e) => Continue();
-
-            /*Snakes.ForEach(snake =>
-            {
-                snake.OnPredictControlPauseNeeded += (sender, e) =>
-                {
-                    Pause();
-                    LastTest = e;
-
-                    DrawExtra = () =>
-                    {
-                        int x = snake.Head.Position.X + (e.WantedDirection == Direction.LEFT ? -1 : (e.WantedDirection == Direction.RIGHT ? 1 : 0));
-                        int y = snake.Head.Position.Y + (e.WantedDirection == Direction.TOP ? -1 : (e.WantedDirection == Direction.BOTTOM ? 1 : 0));
-
-                        Win.Draw(new CircleShape(GameField.CellWidthPixel / 2) { Position = new Vector2f(x * GameField.CellWidthPixel, y * GameField.CellWidthPixel), FillColor = Color.Yellow });
-                        for (int i = 0; i < snake.Brain.BrainHeight; ++i)
-                            for (int j = 0; j < snake.Brain.BrainWidth; ++j)
-                            {
-                                Vector2f position = new Vector2f(
-                                    (snake.Head.Position.X - snake.Brain.BrainWidth / 2 + j) * GameField.CellWidthPixel,
-                                    (snake.Head.Position.Y - snake.Brain.BrainHeight / 2 + i) * GameField.CellHeightPixel
-                                );
-
-                                Text text = new Text(snake.Brain[i, j].ToString(), Font) { Position = position, FillColor = Color.Cyan, CharacterSize = 9 };
-                                text.Draw(Win, RenderStates.Default);
-                            }
-                    };
-                };
-
-                snake.OnContinueGame += (sender, e) => Continue();
-            });*/
+            Pause();
         }
 
         public void Close()
@@ -195,55 +133,56 @@ namespace SnakeBrain.SnakeGame
                 LastTest?.Answer(Direction.BOTTOM);
             else if (e.Code == Keyboard.Key.P)
             {
-                WF.FileDialog dialog = new WF.SaveFileDialog();
+                /*WF.FileDialog dialog = new WF.SaveFileDialog();
                 if (dialog.ShowDialog() == WF.DialogResult.OK)
-                    Snake.Brain.Save(dialog.FileName);
+                    Snake.Brain.Save(dialog.FileName);*/
             }
             else if (e.Code == Keyboard.Key.L)
             {
+                StudentSnake protoSnake = new StudentSnake(Color.Red, Color.Blue, BRAIN_HEIGHT, BRAIN_WIDTH, 0, 0, INIT_SIZE);
+
                 WF.FileDialog dialog = new WF.OpenFileDialog();
                 if (dialog.ShowDialog() == WF.DialogResult.OK)
-                    Snake.LoadBrainFromFile(dialog.FileName);
-                    //Snakes.ForEach(snake => snake.LoadBrainFromFile(dialog.FileName));
+                    protoSnake.LoadBrainFromFile(dialog.FileName);
+
+                for (int i = 0; i < INIT_SNAKE_COUNT; ++i)
+                {
+                    DividingStudentSnake clone = new DividingStudentSnake(protoSnake, INIT_STUDENT_NRG, CREATE_NRG, DIE_NRG, NRG_PER_FOOD);
+                    clone.MoveHeadTo(R.Next(INIT_SIZE, GameField.Height - INIT_SIZE - 1), R.Next(1, GameField.Width - 1));
+                    clone.OnDevide += Clone_OnDevide;
+                    clone.OnDie += Clone_OnDie;
+                    Snakes.Add(clone);
+                }
+
+                Continue();
             }
-            else if (e.Code == Keyboard.Key.O) Study();
             else if (e.Code == Keyboard.Key.K) Play();
             else if (e.Code == Keyboard.Key.R) Continue();
         }
 
-        public void Play()
+        private void Clone_OnDie(object sender, EventArgs e)
         {
-            Snake.OnDie += (sender, e) =>
-            {
-                Pause();
+            DividingStudentSnake died = sender as DividingStudentSnake;
+            Result result = new Result(died.Brain, died.Body.Count + 1, died.TotalCreated);
 
-                DrawExtra = () =>
-                {
-                    Text gameOverText = new Text("Game over", FONT, 48) { FillColor = Color.Black };
-                    gameOverText.Position = new Vector2f((Win.Size.X - gameOverText.CharacterSize * gameOverText.DisplayedString.Length) / 2, Win.Size.Y / 2);
-                    Win.Draw(gameOverText);
-                };
-            };
-            
-            /*Snakes.ForEach(snake =>
-            {
-                snake.OnDie += (ctx, args) =>
-                {
-                    foreach (FieldCellBase cell in snake.Body)
-                        GameField[cell.Position.Y, cell.Position.X] = new FieldCellWall(cell.Position.Y, cell.Position.X);
-                    GameField[snake.Head.Position.Y, snake.Head.Position.X] = new FieldCellWall(snake.Head.Position.Y, snake.Head.Position.X);
-                };
-            });*/
-
-            Continue();
-            Snake.Play();
-            //Snakes.ForEach(snake => snake.Play());
-            DrawExtra = () => { };
+            using (StreamWriter strw = new StreamWriter(Environment.CurrentDirectory + "/Natural/brains.txt", true))
+                strw.WriteLine(JsonConvert.SerializeObject(result) + ", ");
         }
 
-        public void Study() =>
-            Snake.Study();
-            //Snakes.ForEach(snake => snake.Study());
+        private void Clone_OnDevide(object sender, SnakeCreatedEventArgs e)
+        {
+            e.Created.OnDevide += Clone_OnDevide;
+            e.Created.OnDie += Clone_OnDie;
+
+            CreatedSnakes.Add(e.Created);
+        }
+
+        public void Play()
+        {
+            Continue();
+            Snakes.ForEach(snake => snake.Play());
+            DrawExtra = () => { };
+        }
 
         public void Pause() =>
             Stopped = true;
@@ -270,29 +209,53 @@ namespace SnakeBrain.SnakeGame
 
                 if (!Stopped)
                 {
-                    /*Snakes.RemoveAll(snake => snake.Dead);
-                    GameField.Update(Snakes.Cast<SnakeBase>().ToList());
-                    Snakes.ForEach(snake => snake.Update(GameField, Snakes.Where(s => s != snake).Cast<SnakeBase>().ToList()));*/
+                    Snakes.RemoveAll(snake => snake.Dead);
 
-                    GameField.Update(new List<SnakeBase>() { Snake });
-                    Snake.Update(GameField, new List<SnakeBase>());
+                    GameField.Update(Snakes);
+                    Snakes.ForEach(snake => snake.Update(GameField, Snakes));
+
+                    foreach (DividingStudentSnake created in CreatedSnakes)
+                        Snakes.Add(created);
+                    CreatedSnakes.Clear();
                 }
 
                 Win.Draw(GameField);
-                Snake.Draw(Win, RenderStates.Default, GameField.CellWidthPixel, GameField.CellHeightPixel);
-                //Snakes.ForEach(snake => snake.Draw(Win, RenderStates.Default, GameField.CellWidthPixel, GameField.CellHeightPixel));
+                Snakes.ForEach(snake => snake.Draw(Win, RenderStates.Default, GameField.CellWidthPixel, GameField.CellHeightPixel));
 
-                BRAIN_SHAPE.Size = new Vector2f(
-                    Snake.Brain.BrainWidth * GameField.CellWidthPixel,
-                    Snake.Brain.BrainHeight * GameField.CellHeightPixel
-                );
+                for(int i = 0; i < Snakes.Count; ++i)
+                {
+                    DividingStudentSnake snake = Snakes[i];
+                    BRAIN_SHAPE.Size = new Vector2f(
+                       snake.Brain.BrainWidth * GameField.CellWidthPixel,
+                       snake.Brain.BrainHeight * GameField.CellHeightPixel
+                    );
 
-                BRAIN_SHAPE.Position = new Vector2f(
-                    (Snake.Head.Position.X - Snake.Brain.BrainWidth / 2) * GameField.CellWidthPixel,
-                    (Snake.Head.Position.Y - Snake.Brain.BrainHeight / 2) * GameField.CellHeightPixel
-                );
+                    BRAIN_SHAPE.Position = new Vector2f(
+                        (snake.Head.Position.X - snake.Brain.BrainWidth / 2) * GameField.CellWidthPixel,
+                        (snake.Head.Position.Y - snake.Brain.BrainHeight / 2) * GameField.CellHeightPixel
+                    );
 
-                Win.Draw(BRAIN_SHAPE);
+                    Win.Draw(BRAIN_SHAPE);
+
+                    Text score = new Text($"{i + 1}) size = {snake.Body.Count + 1}; energy = {snake.CurrentEnergy}; " +
+                                          $"daughters = {snake.TotalCreated}; mutations = {snake.Brain.Mutations}", FONT)
+                    {
+                        FillColor = Color.Black,
+                        CharacterSize = 24
+                    };
+
+                    score.Position = new Vector2f(GameField.Width * GameField.CellWidthPixel + 60, i * 25 + 20);
+                    Win.Draw(score);
+
+                    RectangleShape colorIndicator = new RectangleShape(new Vector2f(20, 20))
+                    {
+                        OutlineColor = Color.Black,
+                        FillColor = snake.BodyColor
+                    };
+
+                    colorIndicator.Position = new Vector2f(GameField.Width * GameField.CellWidthPixel + 30, i * 25 + 25);
+                    Win.Draw(colorIndicator);
+                }
 
                 DrawExtra();
                 Win.Display();

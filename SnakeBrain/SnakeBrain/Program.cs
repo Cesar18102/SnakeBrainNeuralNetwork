@@ -1,24 +1,19 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Collections.Generic;
 
+using SFML.System;
+using SFML.Window;
 using SFML.Graphics;
 
 using SnakeBrain.SnakeGame;
-using System.Linq;
-using SFML.Window;
-using SFML.System;
+using System.Collections;
 
 namespace SnakeBrain
 {
     public class Program
-    {
-        /*[STAThread]
-        public static void Main(string[] args)
-        {
-            Game game = new Game(30, 30, 30, 30, "test", 30, Color.White);
-            game.Start();
-        }*/
+    {        
         public class Result : IComparable<Result>
         {
             public int Size { get; set; }
@@ -30,24 +25,25 @@ namespace SnakeBrain
         [STAThread]
         public static void Main(string[] args)
         {
-            //Game game = new Game(30, 30, 30, 30, "test", 120, Color.White);
-            //game.Start();
+            /*Test t = new Test();
+            foreach(int i in t)
+            {
+                Console.WriteLine(i);
+            }*/
 
-            // Directory.GetFiles(Environment.CurrentDirectory + "/Probes");
-            string[] files = Enumerable.Range(1, 100)
-                                       .Select(path => Environment.CurrentDirectory + "/Probes2/" + path + ".bot")
-                                       .ToArray();
+            Game game = new Game(100, 100, 10, 10, "test", 60, Color.White);
+            game.Start();
 
-            /*new string[] { "probe17-from12.txt", "probe18-form15.txt", "probe19-from15.txt" }
-                         .Select(path => Environment.CurrentDirectory + "/Probes/" + path)
-                         .ToArray();*/
+            //string[] files = Enumerable.Range(1, 100)
+            //                           .Select(path => Environment.CurrentDirectory + "/Probes2/" + path + ".bot")
+            //                           .ToArray();
 
-            Dictionary<string, Result> results = new Dictionary<string, Result>();
-            Play(files, 0, 3, results);
-            DrawStatistics(results);
+            //Dictionary<string, Result> results = new Dictionary<string, Result>();
+            //Play(files, 0, 3, results);
+            //DrawStatistics(results);
         }
 
-        public static void DrawStatistics(Dictionary<string, Result> results)
+        /*public static void DrawStatistics(Dictionary<string, Result> results)
         {
             int max = results.Max(res => res.Value).Size;
             List<string> bestConfigs = results.Where(res => res.Value.Size == max)
@@ -116,6 +112,6 @@ namespace SnakeBrain
             game.Snake.OnDie += snakeDeathEventHandler;
 
             game.Start();
-        }
+        }*/
     }
 }

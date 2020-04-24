@@ -9,9 +9,9 @@ namespace SnakeBrain.SnakeGame.Snakes.SnakeEventArgs
         public Direction WantedDirection { get; private set; }
 
         public Field GameField { get; private set; }
-        public List<SnakeBase> OtherSnakes { get; private set; }
+        public IEnumerable<SnakeBase> OtherSnakes { get; private set; }
 
-        public PredictWaitEventArgs(Direction wantedDirection, Field gameField, List<SnakeBase> otherSnakes)
+        public PredictWaitEventArgs(Direction wantedDirection, Field gameField, IEnumerable<SnakeBase> otherSnakes)
         {
             WantedDirection = wantedDirection;
             GameField = gameField;

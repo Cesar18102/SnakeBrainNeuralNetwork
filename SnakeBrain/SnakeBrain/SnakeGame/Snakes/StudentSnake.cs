@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using SFML.Graphics;
 
 using SnakeBrain.SnakeGame.FieldCells;
@@ -18,13 +18,23 @@ namespace SnakeBrain.SnakeGame.Snakes
         public bool Studying { get; private set; }
         public BrainBase Brain { get; private set; }
 
-        public StudentSnake(int initY, int initX, uint initSize, 
-                            Color headColor, Color bodyColor,
-                            int brainHeight, int brainWidth) : 
-            base(initY, initX, initSize, headColor, bodyColor)
+        public StudentSnake(Color headColor, Color bodyColor, 
+                            int brainHeight, int brainWidth, 
+                            int initY, int initX, uint initSize) : 
+            base(headColor, bodyColor, initY, initX, initSize)
         {
             Studying = true;
             Brain = new BrainBase(brainHeight, brainWidth);
+        }
+
+        public StudentSnake(Color headColor, Color bodyColor, 
+                            Point head, IEnumerable<Point> body,
+                            BrainBase brain) : base(headColor, bodyColor, head, body) => Brain = brain;
+
+        public StudentSnake(StudentSnake snake) : base(snake)
+        {
+            Studying = snake.Studying;
+            Brain = new BrainBase(snake.Brain);
         }
 
         public void LoadBrainFromFile(string filename)
@@ -36,7 +46,7 @@ namespace SnakeBrain.SnakeGame.Snakes
         public void Play() => Studying = false;
         public void Study() => Studying = true;
 
-        public override void Update(Field gameField, List<SnakeBase> otherSnakes)
+        public override void Update(Field gameField, IEnumerable<SnakeBase> otherSnakes)
         {
             List<Point> wallTriggers = new List<Point>();
             List<Point> foodTriggers = new List<Point>();
@@ -56,7 +66,7 @@ namespace SnakeBrain.SnakeGame.Snakes
                         if (j < 0 || j >= gameField.Width)
                             continue;
 
-                        if (gameField[i, j] is FieldCellWall || CellInBody(gameField[i, j]) || otherSnakes.Exists(S => S.ContainsCell(gameField[i, j])))
+                        if (gameField[i, j] is FieldCellWall || CellInBody(gameField[i, j]) || otherSnakes.Any(S => S.ContainsCell(gameField[i, j])))
                             wallTriggers.Add(new Point(i - yStart, j - xStart));
                         else if (gameField[i, j] is FieldCellFood)
                             foodTriggers.Add(new Point(i - yStart, j - xStart));

@@ -74,9 +74,11 @@
     <Compile Include="SnakeGame\Point.cs" />
     <Compile Include="SnakeGame\Snakes\Brain\BrainBase.cs" />
     <Compile Include="SnakeGame\Snakes\Brain\Neuron.cs" />
+    <Compile Include="SnakeGame\Snakes\DividingStudentSnake.cs" />
     <Compile Include="SnakeGame\Snakes\Direction.cs" />
     <Compile Include="SnakeGame\Snakes\SnakeBase.cs" />
     <Compile Include="SnakeGame\Snakes\SnakeEventArgs\PredictWaitEventArgs.cs" />
+    <Compile Include="SnakeGame\Snakes\SnakeEventArgs\SnakeCreatedEventArgs.cs" />
     <Compile Include="SnakeGame\Snakes\SnakeEventArgs\TeacherAnswerEventArgs.cs" />
     <Compile Include="SnakeGame\Snakes\StudentSnake.cs" />
   </ItemGroup>

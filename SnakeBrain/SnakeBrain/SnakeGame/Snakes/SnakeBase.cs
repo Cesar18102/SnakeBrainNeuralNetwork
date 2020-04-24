@@ -10,8 +10,10 @@ namespace SnakeBrain.SnakeGame.Snakes
 {
     public partial class SnakeBase
     {
+        public event EventHandler<EventArgs> OnEat;
         public event EventHandler<EventArgs> OnDie;
 
+        public int Score { get; private set; }
         public FieldCellBase Head { get; protected set; }
         public List<FieldCellBase> Body { get; protected set; } = new List<FieldCellBase>();
 
@@ -22,7 +24,7 @@ namespace SnakeBrain.SnakeGame.Snakes
         public Color HeadColor { get; protected set; }
         public Color BodyColor { get; protected set; }
 
-        public SnakeBase(int initY, int initX, uint initSize, Color headColor, Color bodyColor)
+        public SnakeBase(Color headColor, Color bodyColor, int initY, int initX, uint initSize)
         {
             HeadColor = headColor;
             BodyColor = bodyColor;
@@ -35,13 +37,55 @@ namespace SnakeBrain.SnakeGame.Snakes
             OnDie += (sender, e) => Dead = true;
         }
 
+        protected SnakeBase(Color headColor, Color bodyColor, Point head, IEnumerable<Point> body)
+        {
+            HeadColor = headColor;
+            BodyColor = bodyColor;
+
+            Head = new FieldCellBase(head.Y, head.X, HeadColor, Color.Black, 2);
+
+            foreach(Point bodySection in body)
+                Body.Add(new FieldCellBase(bodySection.Y, bodySection.X, BodyColor, Color.Black, 2));
+
+            OnDie += (sender, e) => Dead = true;
+        }
+
+        public void MoveHeadTo(int y, int x)
+        {
+            int dy = y - Head.Position.Y;
+            int dx = x - Head.Position.X;
+
+            Head.Position.MoveTo(y, x);
+
+            foreach (FieldCellBase bodySection in Body)
+                bodySection.Position.MoveTo(
+                    bodySection.Position.Y + dy, 
+                    bodySection.Position.X + dx
+                );
+        }
+
+        protected void Die() => OnDie?.Invoke(this, new EventArgs());
+
+        public SnakeBase(SnakeBase snake)
+        {
+            HeadColor = snake.HeadColor;
+            BodyColor = snake.BodyColor;
+
+            Head = new FieldCellBase(snake.Head.Position.Y, snake.Head.Position.X, HeadColor, Color.Black, 2);
+
+            for (int i = 0; i < snake.Body.Count; i++)
+                Body.Add(new FieldCellBase(snake.Body[i].Position.Y, snake.Body[i].Position.X, BodyColor, Color.Black, 2));
+
+            OnDie += (sender, e) => Dead = true;
+        }
+
         public bool ContainsCell(FieldCellBase cell) =>
             CellInBody(cell) || Head.Position.Equals(cell.Position);
 
         public bool CellInBody(FieldCellBase cell) =>
             Body.Exists(B => B.Position.Equals(cell.Position));
 
-        public virtual bool ProcessCollisionWith(Field gameField, FieldCellBase cell, List<SnakeBase> otherSnakes) 
+        public virtual bool ProcessCollisionWith(Field gameField, FieldCellBase cell, IEnumerable<SnakeBase> otherSnakes) 
         {
             if (cell is FieldCellWall)
             {
@@ -52,6 +96,8 @@ namespace SnakeBrain.SnakeGame.Snakes
             if(cell is FieldCellFood)
             {
                 Grow();
+                ++Score;
+                OnEat(this, new EventArgs());
                 FieldCellEmpty empty = new FieldCellEmpty(cell.Position.Y, cell.Position.X);
                 gameField[cell.Position.Y, cell.Position.X] = empty;
                 return true;
@@ -104,7 +150,7 @@ namespace SnakeBrain.SnakeGame.Snakes
             Body.Add(new FieldCellBase(y, x, BodyColor, Color.Black, 2));
         }
 
-        public virtual void Update(Field gameField, List<SnakeBase> otherSnakes)
+        public virtual void Update(Field gameField, IEnumerable<SnakeBase> otherSnakes)
         {
             int dx = CurrentDirection == Direction.LEFT ? -1 : (CurrentDirection == Direction.RIGHT ? 1 : 0);
             int dy = CurrentDirection == Direction.TOP ? -1 : (CurrentDirection == Direction.BOTTOM ? 1 : 0);
@@ -115,7 +161,7 @@ namespace SnakeBrain.SnakeGame.Snakes
             Head.Position.MoveTo(Head.Position.Y + dy, Head.Position.X + dx);
             Head.FitToSize(gameField.Width, gameField.Height);
 
-            if(!ProcessCollisionWith(gameField, gameField[Head.Position.Y, Head.Position.X], otherSnakes))
+            if (!ProcessCollisionWith(gameField, gameField[Head.Position.Y, Head.Position.X], otherSnakes.Where(S => S != this)))
             {
                 Head.Position.MoveTo(oldY, oldX);
                 Head.FitToSize(gameField.Width, gameField.Height);

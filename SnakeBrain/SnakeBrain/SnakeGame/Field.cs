@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 
 using SFML.Graphics;
@@ -40,14 +41,14 @@ namespace SnakeBrain.SnakeGame
             Cells = new FieldCellBase[Height, Width];
         }
 
-        public void Update(List<SnakeBase> snakes)
+        public void Update(IEnumerable<SnakeBase> snakes)
         {
             if(R.NextDouble() < 0.05)
             {
                 int x = R.Next(0, Width);
                 int y = R.Next(0, Height);
 
-                if (Cells[y, x] is FieldCellEmpty && !snakes.Exists(S => S.ContainsCell(Cells[y, x])))
+                if (Cells[y, x] is FieldCellEmpty && !snakes.Any(S => S.ContainsCell(Cells[y, x])))
                     Cells[y, x] = new FieldCellFood(y, x);
             }
         }

@@ -1,6 +1,8 @@
 ﻿using SFML.System;
 using SFML.Graphics;
 
+using SnakeBrain.SnakeGame.FieldCells;
+
 namespace SnakeBrain.SnakeGame
 {
     public class FieldCellBase
@@ -27,6 +29,9 @@ namespace SnakeBrain.SnakeGame
 
         public void Draw(RenderTarget target, RenderStates states, float width, float height)
         {
+            if (this is FieldCellEmpty)
+                return;
+
             Vector2f size = new Vector2f(width, height);
 
             RectangleShape shape = new RectangleShape(size)

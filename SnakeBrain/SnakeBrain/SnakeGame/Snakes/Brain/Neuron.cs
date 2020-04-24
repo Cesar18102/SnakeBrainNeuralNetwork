@@ -10,20 +10,27 @@ namespace SnakeBrain.SnakeGame.Snakes.Brain
         [JsonProperty]
         private Dictionary<Direction, int> Weights { get; set; } = new Dictionary<Direction, int>()
         {
-            { Direction.LEFT, 0 },
-            { Direction.TOP, 0 },
-            { Direction.RIGHT, 0 },
-            { Direction.BOTTOM, 0 }
+            { Direction.LEFT,    0 },
+            { Direction.TOP,     0 },
+            { Direction.RIGHT,   0 },
+            { Direction.BOTTOM,  0 }
         };
 
         public Neuron() { }
         private Neuron(int left, int top, int right, int bottom)
         {
-            Weights[Direction.LEFT] = left;
-            Weights[Direction.TOP] = top;
-            Weights[Direction.RIGHT] = right;
-            Weights[Direction.BOTTOM] = bottom;
+            Weights[Direction.LEFT   ] = left;
+            Weights[Direction.TOP    ] = top;
+            Weights[Direction.RIGHT  ] = right;
+            Weights[Direction.BOTTOM ] = bottom;
         }
+
+        public Neuron(Neuron neuron) : this(
+            neuron.Weights[Direction.LEFT   ],
+            neuron.Weights[Direction.TOP    ],
+            neuron.Weights[Direction.RIGHT  ],
+            neuron.Weights[Direction.BOTTOM ]
+        ) { }
 
         public int this[Direction direction] =>
             Weights[direction];
